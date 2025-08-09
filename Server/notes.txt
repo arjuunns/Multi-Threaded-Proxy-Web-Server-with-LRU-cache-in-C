@@ -1,0 +1,35 @@
+******************************* FILE DESCRIPTOR ******************************************************
+
+When your program opens a file or creates a socket, the OS keeps a table of open files in the kernel.
+Each entry in that table stores:
+
+A pointer to the actual file object in the kernel.
+
+File mode (read, write, etc.).
+
+Current position in the file, buffers, etc.
+
+The file descriptor is simply the index (integer) into that table.
+Your program uses this number when calling functions like read(), write(), or close() — 
+the OS looks it up to find the real file info.
+
+
+******************************* Architectural Reason for SO_REUSEADDR *******************************
+
+The use of SO_REUSEADDR is a standard and important practice in network server development for a crucial reason: it allows your server to restart quickly.
+
+When a TCP connection is closed, the socket that was used for that connection enters a state called TIME_WAIT. This is a safety mechanism to ensure that any lingering packets from the old connection don't get
+mixed up with a new connection on the same port. The TIME_WAIT state can last for a few minutes.
+
+Without SO_REUSEADDR, if you stop your proxy server and then immediately try to restart it, the bind() call will fail with an "Address already in use" error. This is because the operating system sees that the
+port is still in the TIME_WAIT state and won't allow a new socket to be bound to it.
+
+By setting SO_REUSEADDR, you are telling the operating system: "It's okay to let my new socket bind to this port, even if it's currently in the TIME_WAIT state."
+
+This has a few significant benefits for your proxy server's architecture:
+
+* Development: It allows you to stop and restart your server rapidly during development without having to wait for the TIME_WAIT interval to expire.
+* Robustness: If your server crashes, SO_REUSEADDR allows you to restart it immediately, minimizing downtime.
+* High Availability: In a production environment, this allows for faster server restarts during maintenance or updates, leading to better overall availability of your proxy service.
+
+In short, SO_REUSEADDR is a critical option for creating a robust and developer-friendly network server.
